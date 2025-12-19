@@ -16,8 +16,12 @@ st.set_page_config(
 st.title("2026 LVI Results")
 
 # -----------------------------------------------------------------------------
-# DIRECT DB CONNECTION (HARD-CODED URL)
+# DIRECT DB CONNECTION
 # -----------------------------------------------------------------------------
+# (If you want, you can swap this to read from an env var:
+#   import os
+#   db_url = os.getenv("DATABASE_URL")
+# )
 db_url = (
     "postgresql://doadmin:LjdMqa1UVxbUbvdF@"
     "lmbr-do-user-10682395-0.b.db.ondigitalocean.com:25060/defaultdb"
@@ -130,8 +134,7 @@ QUERIES = {
                 s.*,
                 m.total_us_locations,
                 p.platform_a,
-                p.platform_b,
-                s.ranking_value
+                p.platform_b
             FROM lvi_2026_brand_scores_ch s
             JOIN lvi_2024_us_locations m
               ON s.brand_id = m.brandid
@@ -158,8 +161,7 @@ QUERIES = {
                 s.*,
                 m.total_us_locations,
                 p.platform_a,
-                p.platform_b,
-                s.ranking_value
+                p.platform_b
             FROM lvi_2026_brand_scores_ch s
             JOIN lvi_2024_us_locations m
               ON s.brand_id = m.brandid
@@ -186,8 +188,7 @@ QUERIES = {
                 s.*,
                 m.total_us_locations,
                 p.platform_a,
-                p.platform_b,
-                s.ranking_value
+                p.platform_b
             FROM lvi_2026_brand_scores_ch s
             JOIN lvi_2024_us_locations m
               ON s.brand_id = m.brandid
@@ -334,10 +335,9 @@ def show_platform_and_scatter_row(df: pd.DataFrame, view_name: str):
                  * legend under the chart (no title)
                  * interactive brushing
     """
-
     col_left, col_right = st.columns(2)
 
-    # ------------------ LEFT: PLATFORM COUNT BAR CHART ------------------
+    # LEFT: PLATFORM COUNT BAR CHART
     with col_left:
         if "platform_a" not in df.columns and "platform_b" not in df.columns:
             st.info("No platform columns (platform_a / platform_b) available for chart.")
@@ -385,7 +385,7 @@ def show_platform_and_scatter_row(df: pd.DataFrame, view_name: str):
             else:
                 st.info("No platform data available.")
 
-    # ------------------ RIGHT: SCATTER PLOT ------------------
+    # RIGHT: SCATTER PLOT
     with col_right:
         required_cols = {"optimization_score", "ai_overall_score"}
         if not required_cols.issubset(df.columns):
@@ -415,7 +415,7 @@ def show_platform_and_scatter_row(df: pd.DataFrame, view_name: str):
             if scatter_df.empty:
                 st.info("No data available for scatter plot.")
             else:
-                # --------- CALCULATE AXIS DOMAIN LIMITS (WITH SMALL PADDING) ---------
+                # Axis domains with padding
                 x_min = scatter_df["optimization_score"].min()
                 x_max = scatter_df["optimization_score"].max()
                 y_min = scatter_df["ai_overall_score"].min()
@@ -433,7 +433,6 @@ def show_platform_and_scatter_row(df: pd.DataFrame, view_name: str):
                 x_domain = [x_min - x_padding, x_max + x_padding]
                 y_domain = [y_min - y_padding, y_max + y_padding]
 
-                # Interactive brush
                 brush = alt.selection_interval()
 
                 scatter_chart = (
@@ -488,7 +487,7 @@ def view_top_100_brands_overall():
         st.warning("No data returned.")
         return
 
-    # 1) METRIC CHART AT TOP (Optimization Score, if available)
+    # METRIC CHART AT TOP (Optimization Score if present)
     if "optimization_score" in df.columns:
         show_brand_chart(
             df=df,
@@ -498,10 +497,10 @@ def view_top_100_brands_overall():
             page_size=20,
         )
 
-    # 2) TABLE (NO INDEX)
+    # TABLE (NO INDEX)
     show_table(df)
 
-    # 3) PLATFORM COUNT + SCATTER ROW BELOW TABLE
+    # PLATFORM COUNT + SCATTER ROW
     show_platform_and_scatter_row(df, "Top 100 Brands Overall")
 
 
@@ -518,7 +517,7 @@ def view_default_table(view_name: str):
         st.warning("No data returned.")
         return
 
-    # 1) METRIC CHART AT TOP (best available metric)
+    # METRIC CHART AT TOP (best available metric)
     metric_col = None
     preferred_order = ["ranking_value", "ai_overall_score", "optimization_score"]
 
@@ -546,17 +545,20 @@ def view_default_table(view_name: str):
             page_size=20,
         )
 
-    # 2) TABLE (NO INDEX)
+    # TABLE (NO INDEX)
     show_table(df)
 
-    # 3) PLATFORM COUNT + SCATTER ROW BELOW TABLE
+    # PLATFORM COUNT + SCATTER ROW
     show_platform_and_scatter_row(df, view_name)
 
 # -----------------------------------------------------------------------------
 # SIDEBAR NAVIGATION + ROUTING
 # -----------------------------------------------------------------------------
 st.sidebar.title("Views")
-view = st.sidebar.radio("Select a table", list(QUERIES.keys()))
+view = st.sidebar.radio(
+    "Select a table",
+    list(QUERIES.keys()),
+)
 
 if view == "Top 100 Brands Overall":
     view_top_100_brands_overall()
